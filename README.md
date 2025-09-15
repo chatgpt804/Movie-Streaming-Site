@@ -1,52 +1,70 @@
+# 🎬 Lensloria: A React & Tailwind Movie App
 
+**Lensloria** is a sleek, modern web app for discovering and exploring movies and TV shows. Built with **React** and styled with **Tailwind CSS**, it provides a seamless user experience with a fully responsive design, dynamic content from The Movie Database (TMDB) API, and an intuitive interface.
+
+## ✨ Preview
+
+![Lensloria Homepage](https://github.com/user-attachments/assets/36482289-411e-4d03-81c0-9f4e43f90b02)
+![Lensloria Details Page](https://github.com/user-attachments/assets/354c69c6-3594-47b3-9e8e-11b5e05b9287)
 
 ---
 
-# 🎬 React Movie & TV Streaming App
+## 🚀 Features
 
-A sleek, modern web app for streaming movies and TV shows, built with **React** and styled with **Tailwind CSS**. The platform offers a smooth user experience with responsive design, dynamic content rendering, and an intuitive interface for exploring and watching your favorite content.
+- **Modern UI:** A clean, beautiful, and fully responsive user interface built with Tailwind CSS.
+- **Dynamic Content:** Fetches the latest trending movies, TV shows, and detailed information from the TMDB API.
+- **Powerful Search:** Instantly find any movie or TV show with a real-time search feature.
+- **Detailed Views:** Get comprehensive details for any title, including synopsis, cast, ratings, and trailers.
+- **Genre Filtering:** Browse content by specific genres to discover new favorites.
+- **Fast & Efficient:** Optimized for a smooth and fast browsing experience.
 
-## 🚀 Getting Started
-
-1. Clone this repository:
-
-   ```bash
-   
-   cd React-Based-Web-App-for-Streaming-Movies-and-TV-Shows
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
+---
 
 ## 🛠️ Tech Stack
 
-* **React** – Frontend framework
-* **Tailwind CSS** – Utility-first styling
-* **TMDB API** – Movie and TV show metadata
-* **Streaming APIs** – For accessing streams
+- **Framework:** [React](https://reactjs.org/) – A powerful JavaScript library for building user interfaces.
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) – A utility-first CSS framework for rapid UI development.
+- **Data:** [TMDB API](https://www.themoviedb.org/documentation/api) – The source for all movie and TV show metadata.
+- **Routing:** [React Router](https://reactrouter.com/) – For seamless page navigation within the single-page application.
 
-## 🎥 Features
+---
 
-* Modern, responsive design
-* Fast and dynamic browsing experience
-* Real-time movie and TV show data from TMDB
-* Streaming integration with external APIs
+## ⚙️ Getting Started
 
-<img width="1681" height="999" alt="image" src="https://github.com/user-attachments/assets/36482289-411e-4d03-81c0-9f4e43f90b02" />
+Follow these steps to get the project running on your local machine.
 
+### Prerequisites
 
-<img width="1681" height="999" alt="image" src="https://github.com/user-attachments/assets/354c69c6-3594-47b3-9e8e-11b5e05b9287" />
+- Node.js (v14 or later)
+- npm or yarn
+- A TMDB API Key (You can get one for free by signing up on the [TMDB website](https://www.themoviedb.org/signup).)
 
+### Installation & Setup
 
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/Debronejacobs/Movie-Streaming-Site.git
+    cd lensloria
+    ```
 
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
+3.  **Set up environment variables:**
+    - Create a file named `.env` in the root of your project.
+    - Add your TMDB API key to this file as shown below:
 
+      ```env
+      # Replace with your actual TMDB API key
+      REACT_APP_TMDB_API_KEY=your_api_key_here
+      ```
+    > **Important:** This application will not work without a valid TMDB API key.
+
+4.  **Start the development server:**
+    ```bash
+    npm run dev
+    ```
+
+The application should now be running on `http://localhost:3000` (or another port if specified).
