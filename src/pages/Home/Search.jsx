@@ -1,39 +1,42 @@
-import { useState, forwardRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, forwardRef, useEffect, useCallback, useMemo , memo } from 'react';
 import PropTypes from 'prop-types';
-import { FaSearch } from 'react-icons/fa';
-import { useMovie } from './MoviesContext'; // Import Movie context
-import { useSeries } from './SeriesContext'; // Import Series context
+import { FaSearch, FaTimes } from 'react-icons/fa';
+import { useMovie } from './MoviesContext';
+import { useSeries } from './SeriesContext';
 
-const API_KEY = import.meta.env.VITE_TMDB_API;
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-const DEBOUNCE_DELAY = 350;
-const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
-const BLUR_HASH_URL = 'https://image.tmdb.org/t/p/w100';
+const CONFIG = {
+  API_KEY: import.meta.env.VITE_TMDB_API,
+  BASE_URL: import.meta.env.VITE_BASE_URL,
+  DEBOUNCE_DELAY: 350,
+  IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w500',
+  BLUR_HASH_URL: 'https://image.tmdb.org/t/p/w100',
+  MAX_RESULTS: 8
+};
 
 const ImageWithFallback = ({ src, alt, className }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const handleLoad = () => setIsLoading(false);
-  const handleError = () => {
-    setError(true);
-    setIsLoading(false);
-  };
-
+  const [imageState, setImageState] = useState({ isLoading: true, error: false });
+  const imageSrc = src ? `${CONFIG.IMAGE_BASE_URL}${src}` : null;
+  const blurSrc = src ? `${CONFIG.BLUR_HASH_URL}${src}` : null;
+  
+  const handleLoad = () => setImageState({ isLoading: false, error: false });
+  const handleError = () => setImageState({ isLoading: false, error: true });
+  
   return (
     <div className={`relative ${className} bg-gray-900`}>
-      {isLoading && src && (
+      {imageState.isLoading && blurSrc && (
         <img
-          src={`${BLUR_HASH_URL}${src}`}
+          src={blurSrc}
           alt="Loading..."
           className="absolute inset-0 w-full h-full object-cover filter blur-md"
         />
       )}
-      {!error && src ? (
+      {!imageState.error && imageSrc ? (
         <img
-          src={`${IMAGE_BASE_URL}${src}`}
+          src={imageSrc}
           alt={alt}
-          className={`w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${
+            imageState.isLoading ? 'opacity-0' : 'opacity-100'
+          }`}
           onLoad={handleLoad}
           onError={handleError}
           loading="lazy"
@@ -47,14 +50,15 @@ const ImageWithFallback = ({ src, alt, className }) => {
   );
 };
 
-const SearchResults = ({ results, selectedIndex, onMouseEnter, onClick }) => {
-  const renderResultItem = (item, index) => (
+const ResultItem = memo(({ item, isSelected, onSelect, onHover }) => {
+  const year = item.release_date && new Date(item.release_date).getFullYear();
+  
+  return (
     <div
-      key={item.id}
       className={`flex items-center p-2 border-b border-slate-950 cursor-pointer transition-colors duration-200
-        ${selectedIndex === index ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
-      onMouseEnter={() => onMouseEnter(index)}
-      onClick={() => onClick(item)}
+        ${isSelected ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
+      onMouseEnter={onHover}
+      onClick={onSelect}
     >
       <ImageWithFallback
         src={item.poster_path}
@@ -72,71 +76,106 @@ const SearchResults = ({ results, selectedIndex, onMouseEnter, onClick }) => {
           </div>
         )}
         <span className="text-xs text-gray-500 capitalize">{item.media_type}</span>
-        {item.release_date && (
-          <span className="text-xs text-gray-400">
-            {new Date(item.release_date).getFullYear()}
-          </span>
-        )}
+        {year && <span className="text-xs text-gray-400">{year}</span>}
       </div>
     </div>
   );
+});
 
-  return (
-    <div className="absolute z-10 mt-2 max-h-60 w-full bg-black/95 backdrop-blur-sm rounded-lg overflow-y-auto shadow-lg border border-gray-800">
-      {results.map(renderResultItem)}
-    </div>
-  );
-};
+const SearchResults = memo(({ results, selectedIndex, onMouseEnter, onClick }) => (
+  <div className="absolute z-10 mt-2 max-h-60 w-full bg-black/95 backdrop-blur-sm rounded-lg overflow-y-auto shadow-lg border border-gray-800">
+    {results.map((item, index) => (
+      <ResultItem
+        key={item.id}
+        item={item}
+        isSelected={selectedIndex === index}
+        onHover={() => onMouseEnter(index)}
+        onSelect={() => onClick(item)}
+      />
+    ))}
+  </div>
+));
 
-const Search = forwardRef(({ onFocus, onBlur, isActive }, ref) => {
-  const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState([]);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [error, setError] = useState(null);
+const useSearchLogic = () => {
+  const [state, setState] = useState({
+    query: '',
+    loading: false,
+    results: [],
+    selectedIndex: -1,
+    error: null
+  });
 
-  const { selectMovie } = useMovie();
-  const { selectSeries } = useSeries();
+  const searchRequest = useCallback(async (searchQuery) => {
+    if (!searchQuery?.trim()) return [];
+    
+    const url = new URL(`${CONFIG.BASE_URL}/search/multi`);
+    url.searchParams.append('api_key', CONFIG.API_KEY);
+    url.searchParams.append('query', searchQuery);
+    url.searchParams.append('language', 'en-US');
+    url.searchParams.append('page', '1');
+    url.searchParams.append('include_adult', 'false');
 
-  const debouncedSearch = useCallback(() => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    const data = await response.json();
+    return data.results
+      .filter(item => ['movie', 'tv'].includes(item.media_type))
+      .slice(0, CONFIG.MAX_RESULTS);
+  }, []);
+
+  const debouncedSearch = useMemo(() => {
     let timeoutId;
-    return (searchQuery) => {
+    return (searchQuery, callback) => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => handleSearch(searchQuery), DEBOUNCE_DELAY);
+      timeoutId = setTimeout(callback, CONFIG.DEBOUNCE_DELAY);
       return () => clearTimeout(timeoutId);
     };
   }, []);
 
-  const handleSearch = async (searchQuery) => {
-    if (!searchQuery?.trim()) {
-      setResults([]);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
+  const handleSearch = useCallback(async (searchQuery) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const response = await fetch(
-        `${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(searchQuery)}&language=en-US&page=1&include_adult=false`
-      );
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const data = await response.json();
-      const filteredResults = data.results
-        .filter(item => ['movie', 'tv'].includes(item.media_type))
-        .slice(0, 8);
-
-      setResults(filteredResults);
-      setSelectedIndex(-1);
-    } catch (err) {
-      setError(' Please check your internet connection .');
-      setResults([]);
-    } finally {
-      setLoading(false);
+      const results = await searchRequest(searchQuery);
+      setState(prev => ({ 
+        ...prev, 
+        results,
+        selectedIndex: -1,
+        loading: false 
+      }));
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please check your internet connection.',
+        results: [],
+        loading: false
+      }));
     }
+  }, [searchRequest]);
+
+  return {
+    state,
+    setState,
+    handleSearch,
+    debouncedSearch
   };
+};
+
+const Search = forwardRef(({ onFocus, onBlur, isActive }, ref) => {
+  const { selectMovie } = useMovie();
+  const { selectSeries } = useSeries();
+  const { state, setState, handleSearch, debouncedSearch } = useSearchLogic();
+  const { query, loading, results, selectedIndex, error } = state;
+
+  const clearSearch = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      query: '',
+      results: [],
+      selectedIndex: -1,
+      error: null
+    }));
+  }, [setState]);
 
   const handleKeyNavigation = useCallback((e) => {
     if (results.length === 0) return;
@@ -144,11 +183,17 @@ const Search = forwardRef(({ onFocus, onBlur, isActive }, ref) => {
     const keyHandlers = {
       ArrowDown: () => {
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1));
+        setState(prev => ({
+          ...prev,
+          selectedIndex: Math.min(prev.selectedIndex + 1, results.length - 1)
+        }));
       },
       ArrowUp: () => {
         e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        setState(prev => ({
+          ...prev,
+          selectedIndex: Math.max(prev.selectedIndex - 1, 0)
+        }));
       },
       Enter: () => {
         if (selectedIndex >= 0) {
@@ -158,35 +203,19 @@ const Search = forwardRef(({ onFocus, onBlur, isActive }, ref) => {
           clearSearch();
         }
       },
-      Escape: () => {
-        clearSearch();
-      }
+      Escape: clearSearch
     };
 
     const handler = keyHandlers[e.key];
     if (handler) handler();
-  }, [results, selectedIndex, selectMovie, selectSeries]);
-
-  const clearSearch = () => {
-    setQuery('');
-    setResults([]);
-    setSelectedIndex(-1);
-    setError(null);
-  };
+  }, [results, selectedIndex, selectMovie, selectSeries, clearSearch, setState]);
 
   useEffect(() => {
-    const search = debouncedSearch();
     if (query) {
-      const cleanup = search(query);
+      const cleanup = debouncedSearch(query, () => handleSearch(query));
       return cleanup;
     }
-  }, [query, debouncedSearch]);
-
-  const handleItemSelection = useCallback((item) => {
-    const handler = item.media_type === 'movie' ? selectMovie : selectSeries;
-    handler(item);
-    clearSearch();
-  }, [selectMovie, selectSeries]);
+  }, [query, debouncedSearch, handleSearch]);
 
   const searchInputClasses = useMemo(() => `
     w-full bg-gray-800 text-white px-6 py-1.5 rounded-full text-sm
@@ -203,7 +232,7 @@ const Search = forwardRef(({ onFocus, onBlur, isActive }, ref) => {
             type="text"
             placeholder="Search movies and TV shows..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setState(prev => ({ ...prev, query: e.target.value }))}
             onKeyDown={handleKeyNavigation}
             onFocus={onFocus}
             onBlur={onBlur}
@@ -211,35 +240,50 @@ const Search = forwardRef(({ onFocus, onBlur, isActive }, ref) => {
             aria-label="Search for movies and TV shows"
             aria-live="polite"
           />
-          <FaSearch className="absolute right-3 top-2 text-gray-400 text-sm" />
+          <FaSearch className="absolute right-10 top-2 text-gray-400 text-sm" />
           {loading && (
-            <div className="absolute right-12 top-2 flex items-center gap-2">
-              <div className="animate-spin h-4 w-6  rounded-full border-t-transparent"></div>
+            <div className="absolute right-12 top-2">
+              <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full" />
             </div>
           )}
-          {error && <p className=" text-xs mt-1">{error}</p>}
-        </div>
-
-        {results.length > 0 && (
-          <div>
-            <SearchResults
-              results={results}
-              selectedIndex={selectedIndex}
-              onMouseEnter={setSelectedIndex}
-              onClick={handleItemSelection}
-            />
+          {query && (
             <button
               onClick={clearSearch}
-              className="mt-2 px-4 py-1.5 text-sm bg-red-600 text-white rounded-md 
-                focus:outline-none  transition-colors duration-200"
+              className="absolute right-3 top-2 text-gray-400 hover:text-white transition-colors duration-200"
+              aria-label="Clear search"
             >
-              Clear Search
+              <FaTimes />
             </button>
-          </div>
+          )}
+          {error && (
+            <p className="absolute -bottom-6 left-0 text-red-500 text-xs">{error}</p>
+          )}
+        </div>
+        {results.length > 0 && (
+          <SearchResults
+            results={results}
+            selectedIndex={selectedIndex}
+            onMouseEnter={index => setState(prev => ({ ...prev, selectedIndex: index }))}
+            onClick={item => {
+              const handler = item.media_type === 'movie' ? selectMovie : selectSeries;
+              handler(item);
+              clearSearch();
+            }}
+          />
         )}
       </div>
     </div>
   );
+});
+
+const itemPropType = PropTypes.shape({
+  id: PropTypes.number.isRequired,
+  title: PropTypes.string,
+  name: PropTypes.string,
+  poster_path: PropTypes.string,
+  vote_average: PropTypes.number,
+  media_type: PropTypes.string.isRequired,
+  release_date: PropTypes.string
 });
 
 ImageWithFallback.propTypes = {
@@ -248,18 +292,15 @@ ImageWithFallback.propTypes = {
   className: PropTypes.string,
 };
 
+ResultItem.propTypes = {
+  item: itemPropType.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  onHover: PropTypes.func.isRequired
+};
+
 SearchResults.propTypes = {
-  results: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.number.isRequired,
-      title: PropTypes.string,
-      name: PropTypes.string,
-      poster_path: PropTypes.string,
-      vote_average: PropTypes.number,
-      media_type: PropTypes.string.isRequired,
-      release_date: PropTypes.string
-    })
-  ).isRequired,
+  results: PropTypes.arrayOf(itemPropType).isRequired,
   selectedIndex: PropTypes.number.isRequired,
   onMouseEnter: PropTypes.func.isRequired,
   onClick: PropTypes.func.isRequired
@@ -271,7 +312,8 @@ Search.propTypes = {
   isActive: PropTypes.bool,
 };
 
-
 Search.displayName = 'Search';
+ResultItem.displayName = 'ResultItem';
+SearchResults.displayName = 'SearchResults';
 
 export default Search;

@@ -5,7 +5,7 @@ import { FaPlay } from 'react-icons/fa';
 
 const RatingCircle = ({ rating }) => {
   const percentage = (rating / 10) * 100;
-  
+
   return (
     <div className="relative w-8 h-8 bg-black backdrop-blur-sm rounded-full flex items-center justify-center">
       <svg viewBox="0 0 36 36" className="absolute w-full h-full -rotate-90">
@@ -64,15 +64,12 @@ const ContentCard = memo(({
   const currentDate = new Date();
   const isReleased = releaseDate ? new Date(releaseDate) <= currentDate : true;
 
-  // If the movie/series is unreleased, don't render the component
-  if (!isReleased) return null;
-
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={`group relative w-full overflow-hidden rounded-lg shadow-lg cursor-pointer
-         transition-transform mb-20 mr-4 ml-3  duration-300 ${className}`}
+         transition-transform  mr-4 ml-4  duration-300 ${className}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -94,6 +91,11 @@ const ContentCard = memo(({
           onLoad={() => handleImageState('loaded')}
           onError={() => handleImageState('error')}
         />
+        {!isReleased && (
+          <div className="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">
+            Coming Soon
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent
           opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <div className="absolute inset-0 flex items-center justify-center">

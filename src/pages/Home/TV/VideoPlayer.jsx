@@ -1,78 +1,40 @@
-import { useEffect, useRef, memo } from 'react';
+import React, { memo } from 'react'; // Removed useEffect, useRef
 import PropTypes from 'prop-types';
 
 const VideoPlayer = ({ tvId, season = 1, episode = 1 }) => {
-  const iframeRef = useRef(null);
+    // Construct the iframe source URL using the Vidsrc.pk format
+    const iframeSrc = `https://vidlink.pro/tv/${tvId}/${season}/${episode}?nextbutton=true`;
 
-  useEffect(() => {
-    // Disable window.open
-    const originalWindowOpen = window.open;
-    window.open = () => null;
+ 
+   
 
-    const handleContextMenu = (event) => event.preventDefault();
-
-    const handleWindowBlur = () => {
-      if (document.activeElement instanceof HTMLIFrameElement) {
-        window.focus();
-      }
-    };
-
-    const preventIframeRedirects = () => {
-      try {
-        if (iframeRef.current?.contentWindow) {
-          Object.defineProperties(iframeRef.current.contentWindow, {
-            location: {
-              get() {
-                return null;
-              },
-              set() {},
-              configurable: true,
-            },
-          });
-        }
-      } catch (error) {
-        console.warn("Unable to modify iframe due to cross-origin restrictions.");
-      }
-    };
-
-    iframeRef.current?.addEventListener("load", preventIframeRedirects);
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("blur", handleWindowBlur);
-
-    return () => {
-      window.open = originalWindowOpen;
-      iframeRef.current?.removeEventListener("load", preventIframeRedirects);
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("blur", handleWindowBlur);
-    };
-  }, []);
-
-  const iframeSrc = `https://vidsrc.dev/embed/tv/${tvId}/${season}/${episode}`;
-
-  return (
-    <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
-      <iframe
-        ref={iframeRef}
-        src={iframeSrc}
-        allowFullScreen
-        title="Series Stream"
-        loading="lazy"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-        referrerPolicy="no-referrer"
-        className="absolute top-0 left-0   w-full h-[50vh] sm:h-[30vh] md:h-[60vh] lg:h-[70vh] xl:h-[80vh] rounded shadow-lg mb-3"
-        style={{
-          pointerEvents: 'auto',
-          userSelect: 'none',
-        }}
-      />
-    </div>
-  );
+    return (
+        <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
+            <iframe
+                // No ref needed anymore as we removed the JS interacting with it
+                src={iframeSrc}
+                title={`TV Show: ${tvId} - S${season}E${episode}`}
+                className="absolute top-0 left-0 w-full h-full border-0"
+                // --- Apply Sandbox ---
+                // --- Permissions Policy ---
+                // 'allow' attribute works alongside 'sandbox' to grant specific browser features.
+                allow="autoplay; fullscreen; picture-in-picture"
+                // allowFullScreen is legacy but often included for broader compatibility
+                allowFullScreen
+                loading="lazy" // Defer loading until needed
+                referrerPolicy="no-referrer" // Don't send referrer info
+                // style={{ userSelect: 'none' }} // Optional: consider if needed
+            />
+             {/* Optional decorative overlay - kept from original */}
+             <div className="absolute top-0 left-0 w-full h-full border-0 rounded shadow-lg pointer-events-none" style={{zIndex: 1}}></div>
+        </div>
+    );
 }
 
 VideoPlayer.propTypes = {
-  tvId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  season: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  episode: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    tvId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    season: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    episode: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export default memo(VideoPlayer);

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import ContentCard from './ContentCard';
 import { fetchContentByGenre } from './Fetcher';
-import { MdError, MdRefresh } from 'react-icons/md';
 import { BiWifi } from 'react-icons/bi';
 
 const POSTER_BASE_URL = 'https://image.tmdb.org/t/p/w500';
@@ -175,7 +174,7 @@ const ContentGrid = ({ genreId, type, onSelect }) => {
 
   return (
     <div className=" px-2 sm:px-4 py-6">
-      <div className="grid w-full grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div className="grid w-full grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
         {renderContent()}
       </div>
       {state.loading && (

@@ -34,7 +34,6 @@ const GENRES = {
     { id: 10751, name: 'Family' },
     { id: 10762, name: 'Kids' },
     { id: 9648, name: 'Mystery' },
-    { id: 10763, name: 'News' },
     { id: 10764, name: 'Reality' },
     { id: 10765, name: 'Sci-Fi & Fantasy' },
     { id: 10766, name: 'Soap' },
