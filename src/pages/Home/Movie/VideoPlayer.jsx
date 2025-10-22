@@ -30,7 +30,7 @@ const VideoPlayer = ({ movieId }) => {
 
     if (!movieId) return null;
 
-    const iframeSrc = ` https://vidlink.pro/movie/${movieId}?nextbutton=true`;
+    const iframeSrc = ` https://embed.vidsrc.pk/movie/${movieId}?nextbutton=true`;
 
     return (
         <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
