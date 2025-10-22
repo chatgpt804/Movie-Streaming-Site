@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 const VideoPlayer = ({ tvId, season = 1, episode = 1 }) => {
     // Construct the iframe source URL using the Vidsrc.pk format
-    const iframeSrc = `https://vidlink.pro/tv/${tvId}/${season}/${episode}?nextbutton=true`;
+    const iframeSrc = `https://embed.vidsrc.pk/${tvId}/${season}/${episode}?nextbutton=true`;
 
  
    
